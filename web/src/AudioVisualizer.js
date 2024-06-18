@@ -71,7 +71,7 @@ function AudioVisualizer() {
           requestAnimationFrame(draw);
 
           analyserNode.getByteFrequencyData(dataArray);
-          sendAudioData(dataArray, audioBuffer); // Send frequency data and audio buffer
+          //sendAudioData(dataArray, audioBuffer); // Send frequency data and audio buffer
 
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
 

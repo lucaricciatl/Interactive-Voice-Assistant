@@ -4,9 +4,7 @@ import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { Perlin } from 'three-noise';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import CustomShaderMaterial from './CustomShaderMaterial';
 import { material1, material2, material3 } from './CustomShaderMaterial';
-
 
 const noise = new Perlin();
 
@@ -54,13 +52,34 @@ function AnimatedSphere({ frequency = 4, scale = 0.2, size = 100, material }) {
 
     return (
         <mesh ref={meshRef}>
-            <sphereGeometry args={[10,128, 128]}  />
+            <sphereGeometry args={[10, 128, 128]} />
             <shaderMaterial
                 attach="material"
                 args={[material]}
                 uniforms-time-value={1}
                 uniforms-opacity-value={0.5} // Set opacity value here
             />
+        </mesh>
+    );
+}
+
+function BlackSphere({ size, position }) {
+    const meshRef = useRef();
+
+    useFrame(({ clock }) => {
+        // Calculate scale based on sine function and time
+        const scale = 1 + Math.sin(clock.getElapsedTime() * 2) * 0.1; // Adjust amplitude (0.1) for breathing effect
+        
+        // Update scale of the mesh
+        if (meshRef.current) {
+            meshRef.current.scale.set(scale, scale, scale);
+        }
+    });
+
+    return (
+        <mesh ref={meshRef} position={position}>
+            <sphereGeometry args={[size, 128, 128]} />
+            <meshBasicMaterial color="black" />
         </mesh>
     );
 }
@@ -74,25 +93,23 @@ function Postprocessing() {
     );
 }
 
-
-
 function ThreeScene() {
     return (
         <div>
             <Canvas style={{ height: '30vh', width: '100vw' }}>
                 <ambientLight />
                 <OrbitControls />
-                <PerspectiveCamera makeDefault position={[800, 60, 800]} />
+                <Camera position={[800, 60, 800]} />
                 <pointLight position={[10, 10, 10]} />
-            
-                <AnimatedSphere frequency={0.1} scale={1
-                } size={180} material={material1} />
-                <AnimatedSphere frequency={0.2} scale={2} size={180} material={material2} />
-                <AnimatedSphere frequency={0.3} scale={2} size={180} material={material3} />
 
-                <EffectComposer>
-                    <Bloom luminanceThreshold={1.4} luminanceSmoothing={50.9} />
-                </EffectComposer>
+                {/* Black Sphere */}
+                <BlackSphere size={300} position={[-70, 0, -70]} />
+
+{/* Colored Spheres */}
+{/* <AnimatedSphere frequency={0.1} scale={1} size={180} material={material1} />
+<AnimatedSphere frequency={0.2} scale={2} size={180} material={material2} />
+<AnimatedSphere frequency={0.3} scale={2} size={180} material={material3} /> */}
+
             </Canvas>
         </div>
     );
