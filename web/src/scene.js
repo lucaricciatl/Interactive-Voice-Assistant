@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
@@ -22,6 +22,8 @@ function Camera({ position }) {
 
 function AnimatedSphere({ frequency = 4, scale = 0.2, size = 100, material }) {
     const meshRef = useRef();
+
+
 
     useFrame(({ clock }) => {
         const time = clock.getElapsedTime();
@@ -50,6 +52,7 @@ function AnimatedSphere({ frequency = 4, scale = 0.2, size = 100, material }) {
         meshRef.current.geometry.attributes.position.needsUpdate = true;
     });
 
+    
     return (
         <mesh ref={meshRef}>
             <sphereGeometry args={[10, 128, 128]} />
@@ -64,7 +67,62 @@ function AnimatedSphere({ frequency = 4, scale = 0.2, size = 100, material }) {
 }
 
 function BlackSphere({ size, position }) {
+    const [audioArray, setAudioArray] = useState([]);
     const meshRef = useRef();
+
+    useEffect(() => {
+        // Fetch the audio array from an external source
+        const fetchAudioArray = async () => {
+            try {
+                const response = await fetch('https://192.168.18.36/get-audio-array', {
+                    method: 'GET',
+                        headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': "*"
+              },
+            });
+                setAudioArray(response.data.audioArray);
+            } catch (error) {
+                console.error('Error fetching audio array:', error);
+            }
+        };
+
+        fetchAudioArray();
+    }, []);
+
+    useEffect(() => {
+        let audioContext;
+        let source;
+
+        if (audioArray.length > 0) {
+            // Create an AudioContext
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Create an audio buffer with the audio array
+            const buffer = audioContext.createBuffer(1, audioArray.length, audioContext.sampleRate);
+            const channelData = buffer.getChannelData(0);
+            
+            for (let i = 0; i < audioArray.length; i++) {
+                channelData[i] = audioArray[i];
+            }
+            
+            // Create a buffer source and play the audio
+            source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start(0);
+        }
+
+        return () => {
+            if (source) {
+                source.stop();
+                source.disconnect();
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+        };
+    }, [audioArray]);
 
     useFrame(({ clock }) => {
         // Calculate scale based on sine function and time
@@ -78,8 +136,8 @@ function BlackSphere({ size, position }) {
 
     return (
         <mesh ref={meshRef} position={position}>
-            <sphereGeometry args={[size, 128, 128]} />
-            <meshBasicMaterial color="black" />
+            <sphereGeometry args={[size, 32, 32]} />
+            <meshStandardMaterial color="black" />
         </mesh>
     );
 }
@@ -94,11 +152,12 @@ function Postprocessing() {
 }
 
 function ThreeScene() {
+
     return (
         <div>
-            <Canvas style={{ height: '30vh', width: '100vw' }}>
+            <Canvas style={{ height: '45vh', width: '100vw' }}>
                 <ambientLight />
-                <OrbitControls />
+                <OrbitControls enableZoom={false} enableRotate={false} enablePan={false} />
                 <Camera position={[800, 60, 800]} />
                 <pointLight position={[10, 10, 10]} />
 

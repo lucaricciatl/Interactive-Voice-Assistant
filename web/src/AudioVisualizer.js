@@ -33,30 +33,17 @@ function AudioVisualizer() {
         const canvas = canvasRef.current;
         const canvasCtx = canvas.getContext('2d');
     
-        // Function to throttle API calls
-        const throttle = (fn, delay) => {
-          let lastCall = 0;
-          return (...args) => {
-            const now = new Date().getTime();
-            if (now - lastCall < delay) {
-              return;
-            }
-            lastCall = now;
-            return fn(...args);
-          };
-        };
     
         // Throttled function to send audio data
-        const throttledSendAudioData = throttle(async (frequencyData, audioBuffer) => {
+        const sendAudioData = async (frequencyData, audioBuffer) => {
           try {
             // Encode the audio buffer to base64
-            const uint8Array = new Uint8Array(audioBuffer);
-            const encodedAudioBuffer = btoa(String.fromCharCode(...uint8Array));
-    
-            // Prepare the payload
+            const array = new Float32Array(audioBuffer);
+            const encodedAudioBuffer = btoa(String.fromCharCode(...array));
             const payload = {
-              frequencyData: Array.from(frequencyData),
-              audioBuffer: encodedAudioBuffer
+              frequencyData: Array.from(array),
+              audioBuffer: encodedAudioBuffer,
+              sampleRate: audioCtx.sampleRate,
             };
     
             const response = await fetch('https://192.168.18.36/frequency-data', {
@@ -79,12 +66,7 @@ function AudioVisualizer() {
           } catch (err) {
             console.error('Error sending audio data', err);
           }
-        }, 1000); // Maximum of 10 calls per second (1000 ms)
-    
-        // Function to initiate sending audio data
-        const sendAudioData = (frequencyData, audioBuffer) => {
-          throttledSendAudioData(frequencyData, audioBuffer);
-        };
+        }; // Maximum of 1 calls per second (1000 ms)
     
         const draw = () => {
           requestAnimationFrame(draw);
@@ -94,16 +76,16 @@ function AudioVisualizer() {
     
           canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
     
-          const barWidth = canvas.width / 30; // Width of each soundbar
+          const barWidth = canvas.width / 20; // Width of each soundbar
           const barSpacing = canvas.width / 10; // Space between each soundbar
           const maxBarHeight = canvas.height * 0.75; // Maximum height of the bars
           const circleRadius = barWidth / 2; // Radius of the circles
           const minBarHeight = canvas.height / 20; // Minimum height of the bars
     
-          for (let i = 0; i < 9; i++) {
-            const index = (i % 2 !== 0) ? (11 - 1 - i) : i;
+          for (let i = 0; i < 7; i++) {
+            const index = (i % 2 !== 0) ? (9 - 1 - i) : i;
             const value = dataArray[index];
-            const x = barSpacing * (i + 1);
+            const x = 40+barSpacing * (i + 1);
             let barHeight = (value / 255) * maxBarHeight; // Normalize the value and scale it to the canvas height
     
             if (barHeight < minBarHeight) {
