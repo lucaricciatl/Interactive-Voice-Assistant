@@ -3,7 +3,7 @@
 ## Overview
 This project aims to develop an interactive voice assistant that uses Text-to-Speech (TTS) technology to communicate with users. The assistant will listen to user inputs, process the requests, and respond using natural-sounding speech. This project can be a foundation for building personal assistants, customer support bots, or accessibility tools.
 
-![Example Image]([https://example.com/path/to/image.jpg](https://github.com/lucaricciatl/Interactive-Voice-Assistant/blob/main/ui.png))
+![](https://github.com/lucaricciatl/Interactive-Voice-Assistant/blob/main/ui.png)
 ## Features
 
 ### Voice Input Recognition:
