@@ -9,7 +9,8 @@ import soundfile as sf
 import os 
 from flask import Flask, send_file, jsonify
 import io
-
+import requests
+import json 
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes and origins
@@ -42,31 +43,36 @@ def save_audio_data():
         sf.write(WAV_FILE_PATH, all_audio_data, sample_rate)
         print(f"Saved audio data to {WAV_FILE_PATH}")
 
-#@app.route('/audio-wav', methods=['POST'])
-#def send_audio_wav():
-#    try:
-#        # Assuming your .wav file is stored in a directory named 'audio_files'
-#        audio_file_path = 'audio.mp3'  # Update with your actual file path
-#
-#        # Check if the file exists
-#        if not os.path.isfile(audio_file_path):
-#            return jsonify({'error': 'Audio file not found'}), 404
-#
-#        # Optionally, you can perform some processing here before sending the file
-#        # Example: read the file and convert it to bytes
-#        with open(audio_file_path, 'rb') as f:
-#            audio_data = f.read()
-#
-#        # Return the .wav file as a response
-#        return send_file(
-#            io.BytesIO(audio_data),
-#            mimetype='audio/wav',
-#            as_attachment=True,
-#            download_name='audio.mp3'  # Providing a filename for the downloaded file
-#        )
-#
-#    except Exception as e:
-#        return jsonify({'error': str(e)}), 500
+@app.route('/audio-wav', methods=['POST'])
+def send_audio_wav():
+
+    try:
+        # Assuming your .wav file is stored in a directory named 'audio_files'
+        audio_file_path = 'synthesized_audio.mp3'  # Update with your actual file path
+
+        # Check if the file exists
+        if not os.path.isfile(audio_file_path):
+            return jsonify({'error': 'Audio file not found'}), 404
+
+        # Optionally, you can perform some processing here before sending the file
+        # Example: read the file and convert it to bytes
+        with open(audio_file_path, 'rb') as f:
+            audio_data = f.read()
+        
+        os.remove(audio_file_path)
+            
+        # Return the .wav file as a response
+        return send_file(
+            io.BytesIO(audio_data),
+            mimetype='audio/wav',
+            as_attachment=True,
+            download_name='audio.mp3'  # Providing a filename for the downloaded file
+        )
+    
+
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/frequency-data', methods=['POST', 'OPTIONS'])
 def receive_frequency_data():
@@ -112,6 +118,60 @@ def receive_frequency_data():
         audio_data_storage['sample_rate'].popleft()
 
     return jsonify({"status": "success", "message": "Data received"}), 200
+
+def request_synthetization(url, text, conditions=None, temperature=None, stream=None, audio_input=None, output_wav=None, language=None, sample_rate=None, emotion=None):
+    headers = {'Content-Type': 'application/json'}
+    
+    # Prepare the payload
+    payload = {
+        'text': text,
+        'gpt_cond_len': conditions,
+        'temperature': temperature,
+        'stream': stream,
+        'audio_input': audio_input,
+        'output_wav': "synthesized_audio.mp3",
+        'language': language,
+        'sample_rate': sample_rate,
+        'emotion': emotion
+    }
+    
+    # Remove keys with None values
+    payload = {k: v for k, v in payload.items() if v is not None}
+    
+    # Send POST request
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        
+        # Check if the request was successful
+        response.raise_for_status()
+        
+        # Handle response
+        if response.status_code == 200:
+            # Save the response content (the audio file)
+            with open('synthesized_audio.mp3', 'wb') as file:
+                file.write(response.content)
+            print("Synthesis successful, file saved as 'synthesized_audio.mp3'")
+        else:
+            print(f"Failed to synthesize. Status code: {response.status_code}, Response: {response.text}")
+    
+    except requests.RequestException as e:
+        print(f"An error occurred: {e}")
+# Example usage
+#request_synthetization(
+#    url='http://127.0.0.1:5000/synthesize',  # URL of the Flask server
+#    text='Hello, world!',
+#    temperature=0.7
+#)
+    
+def send_text_to_llm(text):
+    response =True #the response from the llm
+    audio = request_synthetization(
+    url='http://192.168.18.36:5200/synthesize',  #message will be forwarded automatically :D
+    text="response",
+    temperature=0.7
+    )
+
+    return True
 
 if __name__ == '__main__':
     # Start the background thread
