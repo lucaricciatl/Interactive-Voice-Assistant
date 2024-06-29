@@ -65,64 +65,64 @@ function AnimatedSphere({ frequency = 4, scale = 0.2, size = 100, material }) {
         </mesh>
     );
 }
+//curl -X POST \
+//  -F "audio=@/Users/lucaricci/Downloads/StarWars3.wav;type=audio/wav" \
+//  https://192.168.18.36:443/audio-wav -k
+
 
 function BlackSphere({ size, position }) {
-    const [audioArray, setAudioArray] = useState([]);
+    const [audioData, setAudioData] = useState([]);
     const meshRef = useRef();
+    const audioContextRef = useRef(null);
+    const sourceRef = useRef(null);
+    const audioQueue = useRef([]);
+    const audioRef = useRef(new Audio());
+
+    const fetchAudioData = async () => {
+        try {
+            const response = await fetch('https://192.168.18.36/audio-wav', { method: 'POST' });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            audioQueue.current.push(audioUrl);
+            console.log("Audio data fetched and URL created");
+
+            playNextInQueue();
+        } catch (error) {
+            console.error('Error fetching audio data:', error);
+        }
+    };
+
+    const playNextInQueue = () => {
+        if (audioRef.current.paused && audioQueue.current.length > 0) {
+            const nextAudioUrl = audioQueue.current.shift();
+            audioRef.current.src = nextAudioUrl;
+            audioRef.current.play().then(() => {
+                console.log("Audio is playing");
+            }).catch((error) => {
+                console.error('Error playing audio:', error);
+            });
+        }
+    };
 
     useEffect(() => {
-        // Fetch the audio array from an external source
-        const fetchAudioArray = async () => {
-            try {
-                const response = await fetch('https://192.168.18.36/get-audio-array', {
-                    method: 'GET',
-                        headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': "*"
-              },
-            });
-                setAudioArray(response.data.audioArray);
-            } catch (error) {
-                console.error('Error fetching audio array:', error);
-            }
-        };
-
-        fetchAudioArray();
+        const interval = setInterval(fetchAudioData, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
-        let audioContext;
-        let source;
-
-        if (audioArray.length > 0) {
-            // Create an AudioContext
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Create an audio buffer with the audio array
-            const buffer = audioContext.createBuffer(1, audioArray.length, audioContext.sampleRate);
-            const channelData = buffer.getChannelData(0);
-            
-            for (let i = 0; i < audioArray.length; i++) {
-                channelData[i] = audioArray[i];
-            }
-            
-            // Create a buffer source and play the audio
-            source = audioContext.createBufferSource();
-            source.buffer = buffer;
-            source.connect(audioContext.destination);
-            source.start(0);
-        }
+        audioRef.current.volume = 1.0;
+        audioRef.current.onended = playNextInQueue;
 
         return () => {
-            if (source) {
-                source.stop();
-                source.disconnect();
-            }
-            if (audioContext) {
-                audioContext.close();
-            }
+            audioRef.current.pause();
+            audioRef.current.src = '';
         };
-    }, [audioArray]);
+    }, []);
 
     useFrame(({ clock }) => {
         // Calculate scale based on sine function and time
@@ -141,6 +141,7 @@ function BlackSphere({ size, position }) {
         </mesh>
     );
 }
+
 
 function Postprocessing() {
     const { gl, scene, camera } = useThree();
