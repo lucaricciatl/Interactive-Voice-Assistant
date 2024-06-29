@@ -74,9 +74,12 @@ function BlackSphere({ size, position }) {
     const [audioData, setAudioData] = useState([]);
     const meshRef = useRef();
     const audioContextRef = useRef(null);
+    const analyserRef = useRef(null);
+    const dataArrayRef = useRef(null);
     const sourceRef = useRef(null);
     const audioQueue = useRef([]);
     const audioRef = useRef(new Audio());
+
 
     const fetchAudioData = async () => {
         try {
@@ -96,6 +99,7 @@ function BlackSphere({ size, position }) {
             console.error('Error fetching audio data:', error);
         }
     };
+
 
     const playNextInQueue = () => {
         if (audioRef.current.paused && audioQueue.current.length > 0) {
@@ -118,6 +122,26 @@ function BlackSphere({ size, position }) {
         audioRef.current.volume = 1.0;
         audioRef.current.onended = playNextInQueue;
 
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
+        sourceRef.current.connect(analyserRef.current);
+        analyserRef.current.connect(audioContextRef.current.destination);
+
+        analyserRef.current.fftSize = 256;
+        const bufferLength = analyserRef.current.frequencyBinCount;
+        dataArrayRef.current = new Uint8Array(bufferLength);
+
+        return () => {
+            audioRef.current.pause();
+            audioRef.current.src = '';
+        };
+    }, []);
+
+    useEffect(() => {
+        audioRef.current.volume = 1.0;
+        audioRef.current.onended = playNextInQueue;
+
         return () => {
             audioRef.current.pause();
             audioRef.current.src = '';
@@ -126,13 +150,17 @@ function BlackSphere({ size, position }) {
 
     useFrame(({ clock }) => {
         // Calculate scale based on sine function and time
-        const scale = 1 + Math.sin(clock.getElapsedTime() * 2) * 0.1; // Adjust amplitude (0.1) for breathing effect
-        
-        // Update scale of the mesh
-        if (meshRef.current) {
-            meshRef.current.scale.set(scale, scale, scale);
+        const scale = 1 + 0.1+ Math.sin(clock.getElapsedTime() * 2) * 0.1; // Adjust amplitude (0.1) for breathing effect
+        if (analyserRef.current && dataArrayRef.current) {
+            analyserRef.current.getByteFrequencyData(dataArrayRef.current);
+            const average = dataArrayRef.current.reduce((sum, value) => sum + value, 0) / dataArrayRef.current.length;
+            const scale = 1 + (average / 256) * 0.5+ Math.sin(clock.getElapsedTime() * 2) * 0.1; // Adjust 0.5 to change the scale sensitivity
+            if (meshRef.current) {
+                meshRef.current.scale.set(scale, scale, scale);
+            }
         }
     });
+
 
     return (
         <mesh ref={meshRef} position={position}>
