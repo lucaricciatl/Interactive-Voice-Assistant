@@ -42,31 +42,31 @@ def save_audio_data():
         sf.write(WAV_FILE_PATH, all_audio_data, sample_rate)
         print(f"Saved audio data to {WAV_FILE_PATH}")
 
-@app.route('/audio-wav', methods=['POST'])
-def send_audio_wav():
-    try:
-        # Assuming your .wav file is stored in a directory named 'audio_files'
-        audio_file_path = 'audio.mp3'  # Update with your actual file path
-
-        # Check if the file exists
-        if not os.path.isfile(audio_file_path):
-            return jsonify({'error': 'Audio file not found'}), 404
-
-        # Optionally, you can perform some processing here before sending the file
-        # Example: read the file and convert it to bytes
-        with open(audio_file_path, 'rb') as f:
-            audio_data = f.read()
-
-        # Return the .wav file as a response
-        return send_file(
-            io.BytesIO(audio_data),
-            mimetype='audio/wav',
-            as_attachment=True,
-            download_name='audio.mp3'  # Providing a filename for the downloaded file
-        )
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+#@app.route('/audio-wav', methods=['POST'])
+#def send_audio_wav():
+#    try:
+#        # Assuming your .wav file is stored in a directory named 'audio_files'
+#        audio_file_path = 'audio.mp3'  # Update with your actual file path
+#
+#        # Check if the file exists
+#        if not os.path.isfile(audio_file_path):
+#            return jsonify({'error': 'Audio file not found'}), 404
+#
+#        # Optionally, you can perform some processing here before sending the file
+#        # Example: read the file and convert it to bytes
+#        with open(audio_file_path, 'rb') as f:
+#            audio_data = f.read()
+#
+#        # Return the .wav file as a response
+#        return send_file(
+#            io.BytesIO(audio_data),
+#            mimetype='audio/wav',
+#            as_attachment=True,
+#            download_name='audio.mp3'  # Providing a filename for the downloaded file
+#        )
+#
+#    except Exception as e:
+#        return jsonify({'error': str(e)}), 500
 
 @app.route('/frequency-data', methods=['POST', 'OPTIONS'])
 def receive_frequency_data():
